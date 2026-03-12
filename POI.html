@@ -1,0 +1,520 @@
+<template>
+  <div class="tab-window">
+    <v-row>
+      <v-col cols="6" class="py-2" md="5" v-if="details.fimage">
+        <img :src="details.fimage" class="pointer" @click="openImage(details.fimage)" />
+        <vue-easy-lightbox
+          escDisabled
+          moveDisabled
+          :visible="visiblef"
+          :imgs="[details.fimage]"
+          :index="index"
+          @hide="
+            () => {
+              this.visiblef = false;
+            }
+          "
+        />
+        <h5>Aadhaar Image</h5>
+      </v-col>
+      <!-- <v-col cols="6" class="py-2" md="5" v-if="details.bimage">
+        <img :src="details.bimage" class="pointer" @click="openImage(details.bimage)" />
+        <vue-easy-lightbox escDisabled moveDisabled :visible="visibleb" :imgs="[details.bimage]" :index="index"
+          @hide="() => { this.visibleb = false; }" />
+        <h5>Back Aadhaar Card</h5>
+      </v-col> -->
+    </v-row>
+    <v-row class="pb-4">
+      <v-col cols="4" class="py-2">Name</v-col>
+      <v-col cols="8" class="py-2 font-weight-medium">
+        {{ details['name'] }}
+      </v-col>
+      <v-col cols="4" class="py-2">Aadhaar Number</v-col>
+      <v-col cols="8" class="py-2 font-weight-medium">
+        {{ details['aadhaarNo'] }}
+      </v-col>
+      <v-col cols="4" class="py-2">Gender</v-col>
+      <v-col cols="6" class="py-2 font-weight-medium">
+        <!-- {{ details['gender'] }} -->
+        <span v-if="!isEditGender">{{ details['gender'] }}</span>
+        <span v-if="isEditGender" style="display:inline-block">
+          <v-select :items="selectValues" outlined flat class="searchby" v-model="editedGender">
+          </v-select>
+        </span>
+        <v-btn
+          icon
+          x-small
+          v-if="isCheckerOneRole && !isEditGender && showApproveReject"
+          color="#2A3A90"
+          class="mb-1"
+          @click="isEditGender = true"
+          ><v-icon size="16" color="#2A3A90">mdi-pencil</v-icon></v-btn
+        >
+        <div style="display:block">
+          <v-btn
+            icon
+            x-small
+            v-if="isEditGender"
+            color="#2A3A90"
+            class="mb-1"
+            @click="updateDetailGender()"
+            ><v-icon size="16" color="success">mdi-check</v-icon></v-btn
+          >
+          <v-btn
+            icon
+            x-small
+            v-if="isEditGender"
+            @click="isEditGender = false"
+            color="#2A3A90"
+            class="mb-1"
+            ><v-icon size="16" color="error">mdi-close</v-icon></v-btn
+          >
+        </div>
+      </v-col>
+      <v-col cols="4" class="py-2">Date of Birth</v-col>
+      <v-col cols="6" class="py-2 font-weight-medium">
+        <!-- {{ details['dob'] }} -->
+        <span v-if="!isEditDob">{{ details['dob'] }}</span>
+        <span v-if="isEditDob">
+          <v-menu
+            v-model="fromDateMenu"
+            :close-on-content-click="false"
+            :nudge-right="40"
+            transition="scale-transition"
+            offset-y
+            min-width="290px"
+          >
+            <template v-slot:activator="{ on }">
+              <v-text-field
+                :value="computedFromDate"
+                placeholder="From Date"
+                append-icon="event"
+                :clearable="true"
+                outlined
+                dense
+                readonly
+                v-on="on"
+                @click:append="
+                  fromDateMenu = !fromDateMenu;
+                  clearError();
+                "
+                @input="clearError"
+                @focus="clearError"
+                @click:clear="
+                  fromDate = '';
+                  clearError();
+                "
+              ></v-text-field>
+            </template>
+            <v-date-picker
+              v-model="editedDob"
+              :max="todayDate"
+              @input="fromDateMenu = false"
+            ></v-date-picker>
+          </v-menu>
+        </span>
+        <v-btn
+          icon
+          x-small
+          v-if="isCheckerOneRole && !isEditDob && showApproveReject"
+          color="#2A3A90"
+          class="mb-1"
+          @click="isEditDob = true"
+          ><v-icon size="16" color="#2A3A90">mdi-pencil</v-icon></v-btn
+        >
+        <v-btn icon x-small v-if="isEditDob" color="#2A3A90" class="mb-1" @click="updateDetailDob()"
+          ><v-icon size="16" color="success">mdi-check</v-icon></v-btn
+        >
+        <v-btn icon x-small v-if="isEditDob" @click="isEditDob = false" color="#2A3A90" class="mb-1"
+          ><v-icon size="16" color="error">mdi-close</v-icon></v-btn
+        >
+      </v-col>
+      <v-col cols="4" class="py-2">Address</v-col>
+      <v-col class="py-2 font-weight-medium black--text" cols="6"
+        ><span v-if="!isEditAddress">{{ details['address'] }}</span>
+        <!-- <span v-if="isEditAddress"
+          ><v-text-field outlined dense v-model="editedAddress"></v-text-field
+        ></span>
+        <v-btn
+          icon
+          x-small
+          v-if="isCheckerOne && !isEditAddress"
+          color="#2A3A90"
+          class="mb-1"
+          @click="isEditAddress = true"
+          ><v-icon size="16" color="#2A3A90">mdi-pencil</v-icon></v-btn
+        >
+        <v-btn
+          icon
+          x-small
+          v-if="isEditAddress"
+          color="#2A3A90"
+          class="mb-1"
+          @click="updateDetailAddress()"
+          ><v-icon size="16" color="success">mdi-check</v-icon></v-btn
+        >
+        <v-btn
+          icon
+          x-small
+          v-if="isEditAddress"
+          @click="isEditAddress = false"
+          color="#2A3A90"
+          class="mb-1"
+          ><v-icon size="16" color="error">mdi-close</v-icon></v-btn
+        > -->
+      </v-col>
+      <v-col cols="4" class="py-2">Pincode</v-col>
+      <v-col class="py-2 font-weight-medium black--text" cols="6"
+        ><span v-if="!isEditPinCode">{{ details['pincode'] }}</span>
+        <!-- <span v-if="isEditPinCode"
+          ><v-text-field outlined dense v-model="editedPinCode"></v-text-field
+        ></span>
+        <v-btn
+          icon
+          x-small
+          v-if="isCheckerOne && !isEditPinCode"
+          color="#2A3A90"
+          class="mb-1"
+          @click="isEditPinCode = true"
+          ><v-icon size="16" color="#2A3A90">mdi-pencil</v-icon></v-btn
+        >
+        <v-btn
+          icon
+          x-small
+          v-if="isEditPinCode"
+          color="#2A3A90"
+          class="mb-1"
+          @click="updateDetailPinCode()"
+          ><v-icon size="16" color="success">mdi-check</v-icon></v-btn
+        >
+        <v-btn
+          icon
+          x-small
+          v-if="isEditPinCode"
+          @click="isEditPinCode = false"
+          color="#2A3A90"
+          class="mb-1"
+          ><v-icon size="16" color="error">mdi-close</v-icon></v-btn
+        > -->
+      </v-col>
+      <v-col cols="4" class="py-2">City</v-col>
+      <v-col class="py-2 font-weight-medium black--text" cols="6"
+        ><span v-if="!isEditCity">{{ details['city'] }}</span>
+        <!-- <span v-if="isEditCity"
+          ><v-text-field outlined dense v-model="editedCity"></v-text-field
+        ></span>
+        <v-btn
+          icon
+          x-small
+          v-if="isCheckerOne && !isEditCity"
+          color="#2A3A90"
+          class="mb-1"
+          @click="isEditCity = true"
+          ><v-icon size="16" color="#2A3A90">mdi-pencil</v-icon></v-btn
+        >
+        <v-btn
+          icon
+          x-small
+          v-if="isEditCity"
+          color="#2A3A90"
+          class="mb-1"
+          @click="updateDetailCity()"
+          ><v-icon size="16" color="success">mdi-check</v-icon></v-btn
+        >
+        <v-btn
+          icon
+          x-small
+          v-if="isEditCity"
+          @click="isEditCity = false"
+          color="#2A3A90"
+          class="mb-1"
+          ><v-icon size="16" color="error">mdi-close</v-icon></v-btn
+        > -->
+      </v-col>
+      <v-col cols="4" class="py-2">State</v-col>
+      <v-col class="py-2 font-weight-medium black--text" cols="6"
+        ><span v-if="!isEditState">{{ details['state'] }}</span>
+        <!-- <span v-if="isEditState"
+          ><v-text-field outlined dense v-model="editedState"></v-text-field
+        ></span>
+        <v-btn
+          icon
+          x-small
+          v-if="isCheckerOne && !isEditState"
+          color="#2A3A90"
+          class="mb-1"
+          @click="isEditState = true"
+          ><v-icon size="16" color="#2A3A90">mdi-pencil</v-icon></v-btn
+        >
+        <v-btn
+          icon
+          x-small
+          v-if="isEditState"
+          color="#2A3A90"
+          class="mb-1"
+          @click="updateDetailState()"
+          ><v-icon size="16" color="success">mdi-check</v-icon></v-btn
+        >
+        <v-btn
+          icon
+          x-small
+          v-if="isEditState"
+          @click="isEditState = false"
+          color="#2A3A90"
+          class="mb-1"
+          ><v-icon size="16" color="error">mdi-close</v-icon></v-btn
+        > -->
+      </v-col>
+    </v-row>
+
+    <ApprovalRejection
+      :key="keyName"
+      :tabName="tabName"
+      :isCheckerOne="isCheckerOne"
+      :showApproveReject="showApproveReject"
+      :details="details"
+      :rejectionReasons="rejectionReasons"
+      :rejectDialog="rejectDialog"
+      :handleApprovalRejectionDailog="handleApprovalRejectionDailog"
+    />
+  </div>
+</template>
+
+<script>
+import ViewLeadPoi from './ViewLeadPoi';
+
+export default ViewLeadPoi;
+</script>
+
+<style lang="css" src="../ViewLead.css" scoped></style>
+
+
+
+import { Vue, Component, Prop } from 'vue-property-decorator';
+import ApprovalRejection from '@/components/aobSix/ApprovalRejection/ApprovalRejection.vue';
+import axiosInstance from '@/services/commonAxiosInstance';
+import { DEFAULT_VALUE } from '@/utils/HelperFunctions';
+import moment from 'moment';
+
+@Component({
+  components: {
+    ApprovalRejection,
+  },
+})
+export default class ViewLeadPoi extends Vue {
+  @Prop({ type: Boolean, default: false }) readonly showApproveReject!: boolean;
+  @Prop({ required: true, type: Boolean }) readonly isCheckerOne!: boolean;
+  @Prop({ type: Function }) readonly handleApprovalRejectionDailog!: Function;
+  @Prop({ required: true, type: Object }) details!: {
+    address: string;
+    pincode: string;
+    city: string;
+    state: string;
+    gender: string;
+    dob: string;
+    fimage?: string;
+    bimage?: string;
+    isDetailsManuallyEntered?: boolean;
+  };
+  @Prop({ type: Boolean, default: false }) rejectDialog!: boolean;
+  @Prop({ type: String }) readonly keyName!: string;
+  @Prop({ type: String }) readonly leadId!: string;
+
+  tabName = 'POA';
+
+  DEFAULT_VALUE = DEFAULT_VALUE;
+
+  isEdit = '';
+  isEditAddress = false;
+  editedAddress = this.details['address'];
+
+  isEditPinCode = false;
+  editedPinCode = this.details['pincode'];
+
+  isEditCity = false;
+  editedCity = this.details['city'];
+
+  isEditState = false;
+  editedState = this.details['state'];
+
+  isEditGender = false;
+  editedGender = this.details['gender']
+    ? this.details['gender'].toUpperCase()
+    : this.details['gender'];
+
+  isEditDob = false;
+  editedDob = '';
+  visiblef = false;
+  visibleb = false;
+  index = 0;
+
+  isCheckerOneRole = false;
+  selectValues = ['MALE', 'FEMALE'];
+  fromDate = this.$store.getters.getDaob.fromDate;
+  todayDate = new Date().toISOString();
+  errorMessage = '';
+  fromDateMenu = false;
+  customError = '';
+
+  isPoiDetailsManual = this.details['isDetailsManuallyEntered'];
+  openImage(image: string) {
+    window.open(image, '_BLANK');
+  }
+
+  get computedFromDate() {
+    return this.editedDob ? moment(this.editedDob).format('DD-MMM-YYYY') : '';
+  }
+
+  clearError() {
+    this.errorMessage = '';
+  }
+
+  toggle() {
+    this.handleApprovalRejectionDailog(this.tabName, 'TOGGLE', '', true, null, null);
+  }
+
+  rejectionReasons = this.$store.getters.getModuleWiseRejectionData['AADHAR_EKYC'];
+
+  mounted() {
+    const date1 = new Date();
+    const diffyear = date1.getFullYear() - 18;
+    this.todayDate = new Date(date1.setFullYear(diffyear)).toISOString();
+    this.isCheckerOneRole = this.$store.getters.getClientType === 'AOB_CHECKER_1' ? true : false;
+    console.log(`ViewLeadPoi Mounted ${this.keyName}`);
+    if (this.details['dob'].split('/').length > 1) {
+      const splittedDate = this.details['dob'].split('/');
+      const date = [splittedDate[1], splittedDate[0], splittedDate[2]].join('/');
+      this.editedDob = moment(new Date(date).toISOString()).format('YYYY-MM-DD');
+    }
+
+    if (this.details.fimage && !this.details.fimage.startsWith('data:')) {
+      this.details.fimage = `data:image/jpeg;base64,${this.details.fimage}`;
+    }
+    if (this.details.bimage && !this.details.bimage.startsWith('data:')) {
+      this.details.bimage = `data:image/jpeg;base64,${this.details.bimage}`;
+    }
+  }
+
+  updated() {
+    console.log(`ViewLeadPoi Updated ${this.keyName}`);
+  }
+
+  destroyed() {
+    console.log(`ViewLeadPoi Destroyed ${this.keyName}`);
+  }
+
+  async updateDetailAddress() {
+    try {
+      const response = await axiosInstance.post('/updateDetail', {
+        leadId: this.leadId,
+        panFatherName: '',
+        address: this.editedAddress,
+        pinCode: 0,
+        state: '',
+        city: '',
+      });
+
+      this.isEditAddress = false;
+      this.details['address'] = this.editedAddress;
+    } catch (e) {
+      console.error(e);
+    }
+  }
+  async updateDetailPinCode() {
+    try {
+      const response = await axiosInstance.post('/updateDetail', {
+        leadId: this.leadId,
+        panFatherName: '',
+        address: '',
+        pinCode: this.editedPinCode,
+        state: '',
+        city: '',
+        panName: '',
+        gender: '',
+        dob: '',
+      });
+
+      this.isEditPinCode = false;
+      this.details['pincode'] = this.editedPinCode;
+    } catch (e) {
+      console.error(e);
+    }
+  }
+  async updateDetailCity() {
+    try {
+      const response = await axiosInstance.post('/updateDetail', {
+        leadId: this.leadId,
+        panFatherName: '',
+        address: '',
+        pinCode: 0,
+        state: '',
+        city: this.editedCity,
+      });
+
+      this.isEditCity = false;
+      this.details['city'] = this.editedCity;
+    } catch (e) {
+      console.error(e);
+    }
+  }
+  async updateDetailState() {
+    try {
+      const response = await axiosInstance.post('/updateDetail', {
+        leadId: this.leadId,
+        panFatherName: '',
+        address: '',
+        pinCode: 0,
+        state: this.editedState,
+        city: '',
+      });
+
+      this.isEditState = false;
+      this.details['state'] = this.editedState;
+    } catch (e) {
+      console.error(e);
+    }
+    //edit-false
+    //details this.details['fatherName']=this.editedFatherName
+  }
+  async updateDetailGender() {
+    try {
+      const response = await axiosInstance.post('/updateDetail', {
+        leadId: this.leadId,
+        panFatherName: '',
+        address: '',
+        pinCode: 0,
+        state: '',
+        city: '',
+        panName: '',
+        gender: this.editedGender,
+        dob: '',
+      });
+
+      this.isEditGender = false;
+      this.details['gender'] = this.editedGender;
+    } catch (e) {
+      console.error(e);
+    }
+  }
+  async updateDetailDob() {
+    const dobDate = moment(this.editedDob).format('D/M/YYYY');
+    try {
+      const response = await axiosInstance.post('/updateDetail', {
+        leadId: this.leadId,
+        panFatherName: '',
+        address: '',
+        pinCode: 0,
+        state: '',
+        city: '',
+        panName: '',
+        gender: '',
+        dob: dobDate,
+      });
+
+      this.isEditDob = false;
+      this.details['dob'] = dobDate;
+    } catch (e) {
+      console.error(e);
+    }
+  }
+}

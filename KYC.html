@@ -1,0 +1,102 @@
+<template>
+  <div class="tab-window">
+    <v-row class="pb-4">
+      <v-col cols="4" class="py-2">Aadhar Verified</v-col>
+      <v-col cols="8" class="py-2 font-weight-medium">
+        {{ details['aadharVerified'] }}
+      </v-col>
+      <v-col cols="4" class="py-2">Verifier Type</v-col>
+      <v-col cols="8" class="py-2 font-weight-medium">
+        {{ details['verifierType'] }}
+      </v-col>
+      <v-col cols="4" class="py-2">Verifier Id</v-col>
+      <v-col cols="8" class="py-2 font-weight-medium">
+        {{ details['verifierId'] }}
+      </v-col>
+      <v-col cols="4" class="py-2">Name</v-col>
+      <v-col cols="8" class="py-2 font-weight-medium">
+        {{ details['name'] }}
+      </v-col>
+      <v-col cols="4" class="py-2">Lead Image</v-col>
+      <v-col cols="6" class="py-2" md="5">
+        <img :src="details['leadFImage']" class="pointer" />
+        <vue-easy-lightbox
+          escDisabled
+          moveDisabled
+          :visible="visiblef"
+          :imgs="details['leadFImage']"
+          :index="index"
+          @hide="
+            () => {
+              this.visiblef = false;
+            }
+          "
+        />
+      </v-col>
+      <v-col cols="4" class="py-2">Verifier Image</v-col>
+      <v-col cols="6" class="py-2" md="5">
+        <img :src="details['verifierFImage']" class="pointer" />
+      </v-col>
+    </v-row>
+
+    <ApprovalRejection
+      :key="keyName"
+      :tabName="tabName"
+      :isCheckerOne="isCheckerOne"
+      :showApproveReject="showApproveReject"
+      :details="details"
+      :rejectionReasons="rejectionReasons"
+      :rejectDialog="rejectDialog"
+      :handleApprovalRejectionDailog="handleApprovalRejectionDailog"
+    />
+  </div>
+</template>
+
+<script>
+import ViewLeadCpvKyc from './ViewLeadCpvKyc';
+
+export default ViewLeadCpvKyc;
+</script>
+
+<style lang="css" src="../ViewLead.css" scoped></style>
+
+
+
+import { Vue, Component, Prop } from 'vue-property-decorator';
+import ApprovalRejection from '../ApprovalRejection/ApprovalRejection';
+
+@Component({
+  components: {
+    ApprovalRejection,
+  },
+})
+export default class ViewLeadCpvKyc extends Vue {
+  @Prop({ type: Boolean, default: false }) readonly showApproveReject!: boolean;
+  @Prop({ required: true, type: Boolean }) readonly isCheckerOne!: boolean;
+  @Prop({ type: Function }) readonly handleApprovalRejectionDailog!: Function;
+  @Prop({ required: true, type: Object }) details!: object;
+  @Prop({ type: Boolean, default: false }) rejectDialog!: boolean;
+  @Prop({ type: String }) readonly keyName!: string;
+
+  tabName = 'KYCDETAILS';
+  visiblef = false;
+  visibles = false;
+  index = 0;
+  toggle() {
+    this.handleApprovalRejectionDailog(this.tabName, 'TOGGLE', '', true, null, null);
+  }
+
+  rejectionReasons = this.$store.getters.getModuleWiseRejectionData['JOINTKYC_DETAIL'];
+
+  mounted() {
+    console.log('data', this.details['leadFImage']);
+  }
+
+  updated() {
+    console.log(`ViewLeadCpvKyc Updated ${this.details}`);
+  }
+
+  destroyed() {
+    console.log(`ViewLeadCpvKyc Destroyed ${this.keyName}`);
+  }
+}
