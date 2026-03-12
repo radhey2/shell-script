@@ -1,0 +1,287 @@
+<template>
+    <div class="tab-window">
+        <CheckerRemarks :key="keyName" :tabName="tabName" :isCheckerOne="isCheckerOne"
+            :showApproveReject="showApproveReject" :details="details" :rejectionReasons="rejectionReasons"
+            :cb="toggle" />
+
+        <div v-if="details && details.dedupe && details.dedupe.length">
+            <div v-for="(item, index) in details.dedupe" :key="index">
+                <v-row class="pb-1" style="align-items: center; position: relative;">
+                    <v-col cols="10" class="py-1 font-weight-small" style="font-weight: bold;">
+                        <div style="display: flex; align-items:baseline;">
+                            <v-checkbox v-model="item.checked" dense style="transform: scale(1.0) translateY(2px);" />
+                            <span style="line-height: 1.5;">{{ item.smaName }} ({{ item.smaId }})</span>
+                        </div>
+                    </v-col>
+                    <v-col cols="2" class="py-1 text-right">
+                        <v-icon @click="() => toggleDetails(item, index)" style="margin-right:5%;">
+                            {{ shownIndex === index ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
+                        </v-icon>
+                    </v-col>
+                </v-row>
+
+                <!-- Details Section -->
+                <v-row v-if="shownIndex === index" class="main-view">
+                    <v-col cols="12" v-if="dedupeDetailsLoading" class="text-center my-3">
+                        <v-progress-circular indeterminate color="primary" />
+                    </v-col>
+
+                    <template v-else>
+                        <v-col cols="6" class="py-1" md="5">
+                            <div style="display: flex; gap: 10px;">
+                                <div v-if="dedupeDetails.selfieImage" class="text-center pointer">
+                                    <img :src="dedupeDetails.selfieImage"
+                                        style="width: 120px; height: 150px; object-fit: fill;"
+                                        @click="openLightbox(dedupeDetails.selfieImage)" />
+                                    <h5>selfie image</h5>
+                                </div>
+                                <div v-if="dedupeDetails.workplaceInsideImage" class="text-center pointer">
+                                    <img :src="dedupeDetails.workplaceInsideImage"
+                                        style="width: 120px; height: 150px; object-fit: fill;"
+                                        @click="openLightbox(dedupeDetails.workplaceInsideImage)" />
+                                    <h5>workplace inside image</h5>
+                                </div>
+                                <div v-if="dedupeDetails.workplaceOutsideImage" class="text-center pointer">
+                                    <img :src="dedupeDetails.workplaceOutsideImage"
+                                        style="width: 120px; height: 150px; object-fit: fill;"
+                                        @click="openLightbox(dedupeDetails.workplaceOutsideImage)" />
+                                    <h5>workplace outside image</h5>
+                                </div>
+                                <vue-easy-lightbox escDisabled moveDisabled :visible="visiblef" :imgs="[lightboxImage]"
+                                    :index="0" @hide="visiblef = false" />
+                            </div>
+                        </v-col>
+
+                        <v-col cols="12">
+                            <v-row>
+                                <v-col cols="4" class="py-1">IMEI Number</v-col>
+                                <v-col cols="4" class="py-1 font-weight-medium">{{ dedupeDetails.imeiNo }}</v-col>
+                                <v-col cols="4" class="py-1" :class="getStatusClass(item.isImei)"
+                                    style="font-style: italic;">
+                                    {{ dedupeDetails.imeiStatus }}
+                                </v-col>
+                            </v-row>
+                            <v-row>
+                                <v-col cols="4" class="py-1">Biometric Device ID</v-col>
+                                <v-col cols="4" class="py-1 font-weight-medium">{{ dedupeDetails.biometricDeviceId
+                                }}</v-col>
+                                <v-col cols="4" class="py-1" :class="getStatusClass(item.isBiometric)"
+                                    style="font-style: italic;">
+                                    {{ dedupeDetails.biometricStatus }}
+                                </v-col>
+                            </v-row>
+                            <v-row>
+                                <v-col cols="4" class="py-1">Location</v-col>
+                                <v-col cols="4" class="py-1 font-weight-medium">
+                                    {{
+                                        dedupeDetails.latitude && dedupeDetails.latitude !== 'NA' &&
+                                            dedupeDetails.longitude && dedupeDetails.longitude !== 'NA'
+                                            ? `${dedupeDetails.latitude} , ${dedupeDetails.longitude}`
+                                            : ''
+                                    }}
+                                </v-col>
+                                <v-col cols="4" style="font-style: italic;" class="py-1"
+                                    :class="getStatusClass(item.isLatLong)">
+                                    {{ dedupeDetails.locationStatus }}
+                                </v-col>
+                            </v-row>
+                            <v-row>
+                                <v-col cols="4" class="py-1">Mode Of Onboarding</v-col>
+                                <v-col cols="4" class="py-1 font-weight-medium">
+                                    {{
+                                        dedupeDetails.onboardingMode && dedupeDetails.onboardingMode !== 'NA'
+                                            ? `${dedupeDetails.onboardingMode} (${dedupeDetails.onboardingModeValue})`
+                                            : ''
+                                    }}
+                                </v-col>
+                            </v-row>
+                        </v-col>
+
+                        <!-- Block Button -->
+                        <v-row class="ma-0 pa-0">
+                            <v-col cols="12" class="block-button-wrapper pa-0 ma-0">
+                                <v-btn class="block-button" :disabled="!item.checked || showLoaderGIF" :style="{
+                                    opacity: (!item.checked || showLoaderGIF) ? 0.7 : 1,
+                                    pointerEvents: (!item.checked || showLoaderGIF) ? 'none' : 'auto',
+                                    backgroundColor: showLoaderGIF ? 'none' : '',
+                                    border: showLoaderGIF ? 'none' : '',
+                                }" @click="blockDedupe(item)">
+
+                                    <template v-if="!showLoaderGIF">
+                                        Block
+                                    </template>
+                                </v-btn>
+
+                            </v-col>
+                        </v-row>
+                    </template>
+                </v-row>
+
+                <div class="horizontal-line"></div>
+            </div>
+        </div>
+
+        <div v-else class="text-center my-5">
+            <h4>No duplicate leads found</h4>
+        </div>
+
+        <ApprovalRejection :key="keyName" :tabName="tabName" :isCheckerOne="isCheckerOne"
+            :showApproveReject="showApproveReject" :details="details" :rejectionReasons="rejectionReasons"
+            :rejectDialog="rejectDialog" :handleApprovalRejectionDailog="handleApprovalRejectionDailog" />
+    </div>
+</template>
+
+<script>
+import ViewLeadDedupe from './ViewLeadDedupe';
+
+export default ViewLeadDedupe;
+</script>
+
+<style lang="css" src="../ViewLead.css" scoped></style>
+<style lang="css" src="./ViewLeadDedupe.css" scoped></style>
+
+
+
+
+
+import { Vue, Component, Prop } from 'vue-property-decorator';
+import CheckerRemarks from '@/components/aobFour/CheckerRemarks/CheckerRemarks.vue';
+import ApprovalRejection from '@/components/aobFour/ApprovalRejection/ApprovalRejection.vue';
+import axiosInstance from '@/services/commonAxiosInstance';
+import stoast from '@/services/sToast';
+
+@Component({
+  components: {
+    CheckerRemarks,
+    ApprovalRejection,
+  },
+})
+export default class ViewLeadDedupe extends Vue {
+  @Prop({ type: Boolean, default: false }) readonly showApproveReject!: boolean;
+  @Prop({ required: true, type: Boolean }) readonly isCheckerOne!: boolean;
+  @Prop({ type: Function }) readonly handleApprovalRejectionDailog!: Function;
+  @Prop({ required: true, type: Object }) details!: Record<string, any>;
+  @Prop({ type: Boolean, default: false }) readonly rejectDialog!: boolean;
+  @Prop({ type: String }) readonly keyName!: string;
+  @Prop({ type: String, required: true }) readonly leadId!: string;
+
+  tabName = 'DEDUPE';
+  visiblef = false;
+  visibles = false;
+  showDetails = false;
+  shownIndex: number | null = null;
+  dedupeDetailsLoading = false;
+
+  currentIndex = 0;
+  index = 0;
+  $toast: any;
+  lightboxImage: string | null = null;
+  showContainer = false;
+  leadDetails: any = {};
+  modeOfOnboarding: string | null = null;
+  promoterId: string | null = null;
+  lead: any = {};
+
+  showLoaderGIF = false;
+  dedupeDetails: any = {};
+
+  keys = this.$store.getters.getDaobStaticData['keys'];
+  rejectionReasons = this.$store.getters.getDaobStaticData['dedupeDetailsRejReasons'];
+
+  toggle() {
+    this.handleApprovalRejectionDailog(this.tabName, 'TOGGLE', '', true, null, null);
+  }
+
+  goBack() {
+    this.$router.back();
+  }
+
+  openLightbox(imageUrl: string) {
+    this.lightboxImage = imageUrl;
+    this.visiblef = true;
+  }
+
+  getStatusClass(status: string): string {
+    if (status === 'Y') return 'status-red';
+    if (status === 'N') return 'status-green';
+    return '';
+  }
+
+  toggleDetails(item: any, index: number) {
+    if (this.shownIndex === index) {
+      this.shownIndex = null;
+    } else {
+      this.shownIndex = index;
+      this.fetchDedupeDetails(item);
+    }
+  }
+
+  mounted() {
+    console.log(`ViewLeadDedupe Mounted ${this.keyName}`);
+  }
+
+  updated() {
+    console.log(`ViewLeadDedupe Updated ${this.keyName}`);
+  }
+
+  beforeDestroy() {
+    console.log(`ViewLeadDedupe Destroyed ${this.keyName}`);
+  }
+
+  async fetchDedupeDetails(item: any) {
+    try {
+      const response = await axiosInstance.post('/dedupeDetailsV1', {
+        leadId: item.leadId,
+        udf1: this.leadId
+      });
+      this.dedupeDetails = response.data;
+    } catch (e) {
+      console.error(e);
+      setTimeout(() => {
+        // this.goBack(); // Optional
+      }, 2500);
+    }
+  }
+
+  async blockDedupe(item: any) {
+    this.showLoaderGIF = true;
+    try {
+      const response = await axiosInstance.post('/dedupeBlockLead', {
+        clientId: item.smaId,
+        leadId: item.leadId,
+        dedupeLogId: this.dedupeDetails.logId,
+        blockKey: 'SUSPEND',
+        blockReason: 'duplicacy found',
+        status: 'locked',
+        leadStatus: item.status
+      });
+
+      const result = response.data;
+
+      if (result.rs === 'S' && result.rc === '00') {
+        stoast.show({
+          message: 'Lead blocked successfully',
+          intent: 'success',
+          timeout: 3000,
+        });
+      } else {
+        stoast.show({
+          message: `Failed to block lead: ${result.rd || 'Unknown error'}`,
+          intent: 'error',
+          timeout: 3000,
+        });
+      }
+    } catch (e) {
+      console.error('Block dedupe error:', e);
+      stoast.show({
+        message: 'Failed to block lead',
+        intent: 'error',
+        timeout: 3000,
+      });
+    } finally {
+      setTimeout(() => {
+        this.showLoaderGIF = false;
+      }, 2500);
+    }
+  }
+}
